@@ -1,0 +1,30 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: |
+        echo "${{ secrets.DOCKERPASSWORD }}" | docker login -u "DockerUserName" --password-stdin
+        docker build -t cool_docker .
+        docker tag cool_docker DockerUserName/nice_docker:latest
+        docker push DockerUserName/nice_docker:latest
+    - name: Create kubeconfig
+      run: |
+        mkdir ${HOME}/.kube
+        echo ${{secrets.KUBE_CONFIG}} | base64 --decode > ${HOME}/.kube/config
+    - name: Use context
+      run: |
+        kubectl version
+        kubectl config view
+    - name: Tell k8s to restart the cluster
+      run:  kubectl rollout restart deployment cst407-deployment
